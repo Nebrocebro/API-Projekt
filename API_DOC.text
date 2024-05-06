@@ -1,0 +1,28 @@
+GET-request: "/"    - Returnerar projektets HTML-sida, "index.html".
+
+Viktigt! I "server.js" finns en funktion vid namn "processUserInput()", 
+    vilket tar emot en array av strängar för att kontrollera dess giltighet och ifall den innehåller
+    "otillåtna" karaktärer. Används för att förhindra SQL-injektioner. 
+    Tillåtna karaktärer är alla bokstäver från a-z (stora och små), siffror 0-9, ".", "@" och "#".
+    Mellanslag är ej tillåtna.
+
+POST-request: "/addUser"    - Skapar en användare med hashat lösenord och returnerar användarens id. 
+    "/addUser" har 4 parametrar som följer: 
+    "username", "passwd", "email" och "profilePic"
+    OBS! "profilePic" var originellt en input i ett HTML-formulär med filuppladdnings-funktioner, 
+    men den fungerar ej på Insomnia eftersom Insomnia inte kan ladda upp filer på samma sätt,
+    så den är satt till "null" som standard.
+
+POST-request: "/logInUser"    - Söker upp en existerande användare i databasen. Har två parametrar,
+    "username" och "passwd", där "passwd" blir hashat innan sökning för att matcha.
+    Returnerar användarens id och dess användarnamn.
+
+PUT-request: "/editUserInfo"    - Söker fram en användare med matchande användarnamn och (hashat) lösenord,
+    och uppdaterar användarnamn och/eller lösenord beroende på vilka parametrar som fyllts i.
+    Har fyra parametrar som följer: "username", "passwd", "newusername" och "newpasswd". 
+
+GET-request: "/displayUserInfo"    - Söker fram id från användarens tidigare inloggning,
+    och letar därefter fram respektive användarnamn och lösenord till detta id.
+    OBS! Denna route fungerar inte längre, då den var till för att ändra vissa HTML-element,
+    och därmed kunna visa det tidigare tilldelade användarnamnet och profilbilden.
+    
