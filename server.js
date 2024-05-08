@@ -63,7 +63,18 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
 
-var thisUserId = "";
+function verifyToken(req, res, next) {
+  const token = req.headers["authorization"] || req.cookies.token;
+  if (!token) return res.status(401).send("Access denied. No token found.");
+
+  jwt.verify(token, secret, (err, decoded) => {
+    if (err) return res.status(401).send("Invalid token.");
+    req.user = decoded;
+    next();
+  });
+}
+
+// var thisUserId = "";
 app.post("/addUser", upload.single("profilePic"), (req, res) => {
   const { username, passwd, email } = req.body;
   const profilePic = null;
@@ -78,64 +89,62 @@ app.post("/addUser", upload.single("profilePic"), (req, res) => {
 
   if (!isValid) {
     console.error("Error inserting data into the database: Invalid input. ");
-    res.sendStatus(422);
+    res.status(422);
     return;
   }
 
   conn.query(insertQuery, values, (err, result) => {
     if (err) {
       console.error("Error inserting data into the database: " + err.stack);
-      res.sendStatus(500);
+      res.status(500);
       return;
     }
 
     console.log("Inserted into database with ID: " + result.insertId);
     res.redirect("/");
-    thisUserId = result.insertId;
+    // thisUserId = result.insertId;
   });
 });
 
 app.post("/logInUser", (req, res) => {
   const { username, passwd } = req.body;
   const passwdHash = hash(passwd);
-  const logValues = [ username, passwdHash ];
-  const findUserQuery = `SELECT * FROM users WHERE username = ? AND passwd = ?`
+  const logValues = [username, passwdHash];
+  const findUserQuery = `SELECT * FROM users WHERE username = ? AND passwd = ?`;
 
   const isValid = processUserInput(logValues);
 
   if (!isValid) {
     console.error("Error locating into the database: Invalid input. ");
-    res.sendStatus(422);
+    res.status(422);
     return;
   }
 
   conn.query(findUserQuery, logValues, (err, result) => {
     if (err) {
       console.error("Login incorrect: " + err.stack);
-      res.sendStatus(401);
+      res.status(401);
       return;
     }
 
-    if (result[0].passwd = passwdHash) {
+    if ((result[0].passwd = passwdHash)) {
       let payload = {
         sub: result[0].id,
         username: result[0].username,
         passwd: result[0].passwd,
-        exp: Math.floor(Date.now() / 1000) + (2 * 60 * 60) + (5 * 60),
+        exp: Math.floor(Date.now() / 1000) + 2 * 60 * 60 + 5 * 60,
       };
       let token = jwt.sign(payload, secret);
       res.json(token);
-      // console.log("Located user " + username + " from database with ID: " + result[0].id);
-      // res.redirect("/");
-      // thisUserId = result[0].id;
-      // return username, thisUserId;
+      console.log(token);
+      console.log(payload);
     } else {
-      res.sendStatus(401);
+      res.status(401);
     }
   });
 });
 
-app.put("/editUserInfo", (req, res) => {
+app.put("/editUserInfo", verifyToken, (req, res) => {
   var { username, passwd, newusername, newpasswd } = req.body;
   var editValues = [];
   var editInfoQuery = ``;
@@ -153,27 +162,27 @@ app.put("/editUserInfo", (req, res) => {
   const isValid = processUserInput(editValues);
   if (!isValid) {
     console.error("Error locating into the database: Invalid input. ");
-    res.sendStatus(422);
+    res.status(422);
     return;
   }
-  
+
   conn.query(editInfoQuery, editValues, function (err, result) {
     if (err) {
       console.error("Error in editing user info: Server error.", err.stack);
-      res.sendStatus(500);
+      res.status(500);
       return;
     }
-    res.sendStatus(200);
+    res.status(200);
   });
 });
 
-app.get("/displayUserInfo", (req, res) => {
-  const searchId = thisUserId;
+app.get("/displayUserInfo", verifyToken, (req, res) => {
+  const userId = req.user.sub;
   const UNQuery = `SELECT username, profilepic FROM users WHERE id = ?`;
-  conn.query(UNQuery, searchId, (err, results) => {
+  conn.query(UNQuery, userId, (err, results) => {
     if (err) {
       console.error("Error retrieving data from the database: " + err.stack);
-      res.sendStatus(500);
+      res.status(500);
       return;
     }
     res.json(results);
