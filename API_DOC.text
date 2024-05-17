@@ -6,19 +6,23 @@ Viktigt! I "server.js" finns en funktion vid namn "processUserInput()",
     Tillåtna karaktärer är alla bokstäver från a-z (stora och små), siffror 0-9, ".", "@" och "#".
     Mellanslag är ej tillåtna.
 
-POST-request: "/addUser"    - Skapar en användare med hashat lösenord och returnerar användarens id. 
+POST-request: "/addUser"    - Skapar en användare med hashat lösenord.
+                              Ber därefter användaren att logga in med sitt nya konto (genom "/logInUser"),
+                              Vilket görs för att låta servern skapa en token till användaren.
     "/addUser" har 4 parametrar som följer: 
     "username", "passwd", "email" och "profilePic"
     OBS! "profilePic" var originellt en input i ett HTML-formulär med filuppladdnings-funktioner, 
-    men den fungerar ej på Insomnia eftersom Insomnia inte kan ladda upp filer på samma sätt,
+    men detta fungerar ej på Insomnia eftersom Insomnia inte kan ladda upp filer lika lätt,
     så den är satt till "null" som standard.
 
 POST-request: "/logInUser"    - Söker upp en existerande användare i databasen. Har två parametrar,
     "username" och "passwd", där "passwd" blir hashat innan sökning för att matcha.
     Returnerar användarens id, användarnamn och lösenord i en tidsbegränsad JWT-token.
+    "/logInUser" måste genomföras för att de routes nedan ska gå igenom, då de kräver en token.
 
 PUT-request: "/editUserInfo"    - Söker fram en användare med matchande användarnamn och (hashat) lösenord,
-    och uppdaterar användarnamn och/eller lösenord beroende på vilka parametrar som fyllts i.
+    och uppdaterar användarnamn och/eller lösenord beroende på vilka parametrar som fyllts i. 
+    Verifierar ifall korrekt token används och skriver sedan ut användarens token ifall allt stämmer.
     Har fyra parametrar som följer: "username", "passwd", "newusername" och "newpasswd". 
 
 GET-request: "/displayUserInfo"    - Söker fram id från användarens tidigare inloggning,
