@@ -71,41 +71,57 @@ function getToken(tokenName) {
 
 function verifyToken(req, res, next) {
   const vertoken = newToken;
-  if (!vertoken) return res.status(401).send("Access denied. No token found.");
+  if (!vertoken)
+    return res
+      .status(401)
+      .send("Access denied. No token found or it may be expired.");
 
   jwt.verify(vertoken, secret, (err, decoded) => {
-    if (err) return res.status(401).send("Invalid token.");
+    if (err)
+      return res.status(401).send("Invalid token. Token may be expired.");
     req.user = decoded;
     next();
-    console.log(vertoken);
   });
 }
 
 app.post("/addUser", upload.single("profilePic"), (req, res) => {
   const { username, passwd, email } = req.body;
   const profilePic = null;
-  // OBS! Profilepic-delen kan endast genomföras ifall en fil har laddats upp! Fungerar troligen inte i Insomnia!
-  if (profilePic != null) {
+  if (profilePic != null || "") {
     profilePic = req.file.filename;
   }
+  // OBS! Profilepic-delen kan endast genomföras ifall en fil har laddats upp!
+  // Filuppladdning fungerar inte i Insomnia, därför blir profilePic = null!
   const insertQuery = `INSERT INTO users (username, passwd, email, profilepic) VALUES (?, ?, ?, ?)`;
   const values = [username, hash(passwd), email, profilePic];
   const isValid = processUserInput(values);
 
   if (!isValid) {
     console.error("Error inserting data into the database: Invalid input. ");
-    res.status(422);
+    res.status(422).send("Invalid input, try again.");
     return;
   }
 
   conn.query(insertQuery, values, (err, result) => {
     if (err) {
-      console.error("Error inserting data into the database: " + err.stack);
-      res.status(500);
+      console.error(
+        "There was an error with inserting data into the database: " + err.stack
+      );
+      res
+        .status(500)
+        .send(
+          "Error when attempting to create user. Values may already be in use. Try again."
+        );
+      return;
+    }
+
+    if (result.length == 0) {
+      res.status(403).send("The value structure was incorrect. Try again.");
       return;
     }
 
     console.log("Inserted into database with ID: " + result.insertId);
+    res.status(200).send("Success!");
   });
 });
 
@@ -119,30 +135,28 @@ app.post("/logInUser", (req, res) => {
 
   if (!isValid) {
     console.error("Error locating into the database: Invalid input. ");
-    res.status(422);
+    res.status(422).send("Invalid input, try again.");
     return;
   }
-
   conn.query(findUserQuery, logValues, (err, result) => {
     if (err) {
       console.error("Login incorrect: " + err.stack);
-      res.status(401);
+      res.status(401).send("There was an error with the database.");
       return;
     }
-
-    if ((result[0].passwd = passwdHash)) {
-      let payload = {
-        sub: result[0].id,
-        username: result[0].username,
-        passwd: result[0].passwd,
-        exp: Math.floor(Date.now() / 1000) + 2 * 60 * 60 + 5 * 60,
-      };
-      token = jwt.sign(payload, secret);
-      res.json({ token });
-      getToken(token);
-    } else {
-      res.status(401);
+    if (result.length == 0) {
+      res.status(401).send("Incorrect login values, try again.");
+      return;
     }
+    let payload = {
+      sub: result[0].id,
+      username: result[0].username,
+      passwd: result[0].passwd,
+      exp: Math.floor(Date.now() / 1000) + 2 * 60 * 60 + 5 * 60,
+    };
+    token = jwt.sign(payload, secret);
+    res.json({ token });
+    getToken(token);
   });
 });
 
@@ -164,14 +178,24 @@ app.put("/editUserInfo", verifyToken, (req, res) => {
   const isValid = processUserInput(editValues);
   if (!isValid) {
     console.error("Error locating into the database: Invalid input. ");
-    res.status(422);
+    res.status(422).send("Invalid input, try again.");
     return;
   }
 
   conn.query(editInfoQuery, editValues, function (err, results) {
     if (err) {
       console.error("Error in editing user info: Server error.", err.stack);
-      res.status(500);
+      res
+        .status(500)
+        .send("Incorrect input. New values may already be in use. Try again.");
+      return;
+    }
+    if (results.length == 0) {
+      res
+        .status(403)
+        .send(
+          "The values were incorrect or your new login values may already be in use, try again."
+        );
       return;
     }
     res.json(newToken);
@@ -184,14 +208,22 @@ app.get("/displayUserInfo", verifyToken, (req, res) => {
   conn.query(UNQuery, userId, (err, results) => {
     if (err) {
       console.error("Error retrieving data from the database: " + err.stack);
-      res.status(500);
+      res.status(500).send("Invalid token, it may have expired. Try again.");
       return;
     }
-    console.log("Successfully edited information!");
+    if (results.length == 0) {
+      res
+        .status(404)
+        .send(
+          "Information for this user was not found, values may have been changed or deleted, or login has expired. Try again."
+        );
+      return;
+    }
+    console.log("Successfully displayed information! (Maybe)");
     res.json(results);
   });
 });
 
 server.listen(5000, () => {
-  console.log("listening on *:5000");
+  console.log("listening on localhost:5000");
 });

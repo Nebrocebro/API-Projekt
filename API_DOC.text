@@ -1,3 +1,9 @@
+        API DOKUMENTATION
+----------------------------------
+
+OBS! Routes med ikonen "[T]" kräver en token för att kallas. Tokens skapas med routen "/logInUser". 
+    Ifall du vill logga in med ett nytt konto så måste du först skapa kontot med routen "/addUser".
+
 GET-request: "/"    - Returnerar projektets HTML-sida, "index.html".
 
 Viktigt! I "server.js" finns en funktion vid namn "processUserInput()", 
@@ -27,6 +33,6 @@ PUT-request: "/editUserInfo"    - Söker fram en användare med matchande använ
 
 GET-request: "/displayUserInfo"    - Söker fram id från användarens tidigare inloggning,
     och letar därefter fram respektive användarnamn och lösenord till detta id.
-    OBS! Denna route fungerar inte längre, då den var till för att ändra vissa HTML-element,
-    och därmed kunna visa det tidigare tilldelade användarnamnet och profilbilden.
-    
+    OBS! Det finns inte direkt en poäng till denna route längre förutom att visa att serverns GET-routes 
+    kan också verifiera tokens, den var förut till för att ändra vissa HTML-element. 
+    och därmed kan endast visa användarnamnet och profilbildens "krypterade" filnamn.
